@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuantIQ — Market Analysis</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 2rem;
+    }
+
+    /* ---- HEADER ---- */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: #58a6ff;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #8b949e;
+    }
+    .live-badge {
+      margin-left: auto;
+      background: #1a3a1a;
+      color: #3fb950;
+      border: 1px solid #3fb950;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #3fb950;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ---- TICKER BAR ---- */
+    .ticker-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .ticker-btn {
+      padding: 8px 20px;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      background: #161b22;
+      color: #e6edf3;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .ticker-btn.active {
+      background: #58a6ff;
+      color: #0d1117;
+      border-color: #58a6ff;
+    }
+    .ticker-btn:hover:not(.active) {
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+
+    /* ---- METRIC CARDS ---- */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    .metric {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .metric-label {
+      font-size: 12px;
+      color: #8b949e;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .metric-value {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .metric-sub {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    .up   { color: #3fb950; }
+    .down { color: #f85149; }
+    .neutral { color: #e6edf3; }
+
+    /* ---- PREDICTION CARD ---- */
+    .prediction-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+    .pred-direction {
+      font-size: 36px;
+      font-weight: 700;
+    }
+    .pred-confidence {
+      font-size: 13px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    .signals-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+    .signal-item {
+      font-size: 13px;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .signal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #58a6ff;
+      flex-shrink: 0;
+    }
+
+    /* ---- CHARTS ---- */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    @media(max-width: 700px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .card-title {
+      font-size: 12px;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 1rem;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+    }
+
+    /* ---- COMPARE TABLE ---- */
+    .table-wrap {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .table-title {
+      padding: 1rem 1.25rem;
+      font-size: 12px;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid #30363d;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      padding: 10px 1.25rem;
+      text-align: left;
+      color: #8b949e;
+      font-weight: 400;
+      border-bottom: 1px solid #30363d;
+    }
+    td {
+      padding: 12px 1.25rem;
+      border-bottom: 1px solid #21262d;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1c2128; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge.up   { background: #1a3a1a; color: #3fb950; }
+    .badge.down { background: #3a1a1a; color: #f85149; }
+
+    /* ---- LOADING ---- */
+    .loading {
+      color: #8b949e;
+      font-size: 14px;
+      padding: 2rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="logo">QuantIQ</div>
+    <div class="subtitle">AI-powered quantitative market analysis</div>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    Live
+  </div>
+</div>
+
+<!-- TICKER BUTTONS -->
+<div class="ticker-bar">
+  <button class="ticker-btn active" onclick="selectTicker('AAPL')">AAPL</button>
+  <button class="ticker-btn" onclick="selectTicker('MSFT')">MSFT</button>
+  <button class="ticker-btn" onclick="selectTicker('GOOGL')">GOOGL</button>
+  <button class="ticker-btn" onclick="selectTicker('TSLA')">TSLA</button>
+</div>
+
+<!-- METRIC CARDS -->
+<div class="metrics" id="metrics">
+  <div class="loading">Loading metrics...</div>
+</div>
+
+<!-- PREDICTION -->
+<div class="prediction-card" id="prediction">
+  <div class="loading">Loading prediction...</div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts-grid">
+  <div class="card">
+    <div class="card-title">30-day price history</div>
+    <div class="chart-wrap">
+      <canvas id="priceChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">RSI (14-day)</div>
+    <div class="chart-wrap">
+      <canvas id="rsiChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE ALL STOCKS -->
+<div class="table-wrap">
+  <div class="table-title">All stocks — ML predictions</div>
+  <div id="compareTable">
+    <div class="loading">Loading comparison...</div>
+  </div>
+</div>
+
+<script>
+  const API = "http://127.0.0.1:8000";
+  let currentTicker = "AAPL";
+  let priceChart, rsiChart;
+
+  // ------------------------------------------------
+  // SELECT TICKER
+  // ------------------------------------------------
+  function selectTicker(ticker) {
+    currentTicker = ticker;
+
+    // Update button styles
+    document.querySelectorAll(".ticker-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.textContent === ticker);
+    });
+
+    loadStockData();
+    loadPrediction();
+  }
+
+  // ------------------------------------------------
+  // LOAD STOCK DATA + CHARTS
+  // ------------------------------------------------
+  async function loadStockData() {
+    const res  = await fetch(`${API}/stock/${currentTicker}`);
+    const data = await res.json();
+
+    // ---- Metrics ----
+    const rsiColor = data.latest_rsi < 40 ? "up" :
+                     data.latest_rsi > 65 ? "down" : "neutral";
+
+    const momColor = data.latest_momentum >= 0 ? "up" : "down";
+
+    document.getElementById("metrics").innerHTML = `
+      <div class="metric">
+        <div class="metric-label">Price</div>
+        <div class="metric-value neutral">$${data.latest_price}</div>
+        <div class="metric-sub">${currentTicker}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">RSI (14)</div>
+        <div class="metric-value ${rsiColor}">${data.latest_rsi}</div>
+        <div class="metric-sub">
+          ${data.latest_rsi < 40 ? "Oversold" :
+            data.latest_rsi > 65 ? "Overbought" : "Neutral"}
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">MA 5-day</div>
+        <div class="metric-value neutral">$${data.latest_ma5}</div>
+        <div class="metric-sub">Short term avg</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">MA 20-day</div>
+        <div class="metric-value neutral">$${data.latest_ma20}</div>
+        <div class="metric-sub">Medium term avg</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Momentum</div>
+        <div class="metric-value ${momColor}">
+          ${data.latest_momentum >= 0 ? "+" : ""}${data.latest_momentum}
+        </div>
+        <div class="metric-sub">10-day change</div>
+      </div>
+    `;
+
+    // ---- Charts ----
+    const history = data.history;
+    const labels  = history.map(d => d.date.slice(5));
+    const prices  = history.map(d => d.close);
+    const rsis    = history.map(d => +d.rsi.toFixed(1));
+
+    // Price chart
+    if (priceChart) priceChart.destroy();
+    priceChart = new Chart(document.getElementById("priceChart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Close Price",
+          data: prices,
+          borderColor: "#58a6ff",
+          backgroundColor: "#58a6ff22",
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#8b949e", maxTicksLimit: 6 },
+               grid:  { color: "#21262d" } },
+          y: { ticks: { color: "#8b949e", callback: v => "$" + v },
+               grid:  { color: "#21262d" } }
+        }
+      }
+    });
+
+    // RSI chart
+    if (rsiChart) rsiChart.destroy();
+    rsiChart = new Chart(document.getElementById("rsiChart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "RSI",
+            data: rsis,
+            borderColor: "#d29922",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false
+          },
+          // Overbought line at 65
+          {
+            label: "Overbought",
+            data: Array(labels.length).fill(65),
+            borderColor: "#f8514966",
+            borderWidth: 1,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false
+          },
+          // Oversold line at 40
+          {
+            label: "Oversold",
+            data: Array(labels.length).fill(40),
+            borderColor: "#3fb95066",
+            borderWidth: 1,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#8b949e", maxTicksLimit: 6 },
+               grid:  { color: "#21262d" } },
+          y: { min: 0, max: 100,
+               ticks: { color: "#8b949e" },
+               grid:  { color: "#21262d" } }
+        }
+      }
+    });
+  }
+
+  // ------------------------------------------------
+  // LOAD ML PREDICTION
+  // ------------------------------------------------
+  async function loadPrediction() {
+    const res  = await fetch(`${API}/predict/${currentTicker}`);
+    const data = await res.json();
+
+    const isUp    = data.direction === "UP";
+    const dirColor = isUp ? "up" : "down";
+    const arrow    = isUp ? "▲" : "▼";
+
+    const signalsHTML = data.signals
+      .map(s => `
+        <div class="signal-item">
+          <div class="signal-dot"></div>
+          ${s}
+        </div>`)
+      .join("");
+
+    document.getElementById("prediction").innerHTML = `
+      <div>
+        <div class="pred-direction ${dirColor}">
+          ${arrow} ${data.direction}
+        </div>
+        <div class="pred-confidence">
+          ${data.confidence}% confidence · ML prediction for tomorrow
+        </div>
+      </div>
+      <div class="signals-list">
+        <div style="font-size:12px;color:#8b949e;
+                    text-transform:uppercase;
+                    letter-spacing:.05em;
+                    margin-bottom:4px;">
+          Signals detected
+        </div>
+        ${signalsHTML}
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:12px;color:#8b949e">UP probability</div>
+        <div style="font-size:20px;font-weight:600;color:#3fb950">
+          ${data.up_probability}%
+        </div>
+        <div style="font-size:12px;color:#8b949e;margin-top:8px">
+          DOWN probability
+        </div>
+        <div style="font-size:20px;font-weight:600;color:#f85149">
+          ${data.down_probability}%
+        </div>
+      </div>
+    `;
+  }
+
+  // ------------------------------------------------
+  // LOAD COMPARISON TABLE
+  // ------------------------------------------------
+  async function loadCompare() {
+    const res  = await fetch(`${API}/compare`);
+    const data = await res.json();
+
+    const rows = data.stocks.map(s => {
+      const isUp     = s.direction === "UP";
+      const rsiColor = s.rsi < 40 ? "style='color:#3fb950'" :
+                       s.rsi > 65 ? "style='color:#f85149'" : "";
+      const momColor = s.momentum >= 0 ? "style='color:#3fb950'" :
+                                         "style='color:#f85149'";
+      return `
+        <tr>
+          <td><strong>${s.ticker}</strong></td>
+          <td>$${s.price}</td>
+          <td ${rsiColor}>${s.rsi}</td>
+          <td ${momColor}>${s.momentum >= 0 ? "+" : ""}${s.momentum}</td>
+          <td>
+            <span class="badge ${isUp ? "up" : "down"}">
+              ${isUp ? "▲ UP" : "▼ DOWN"} ${s.confidence}%
+            </span>
+          </td>
+        </tr>`;
+    }).join("");
+
+    document.getElementById("compareTable").innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Price</th>
+            <th>RSI</th>
+            <th>Momentum</th>
+            <th>ML Signal</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  // ------------------------------------------------
+  // LOAD EVERYTHING ON START
+  // ------------------------------------------------
+  loadStockData();
+  loadPrediction();
+  loadCompare();
+</script>
+</body>
+</html>
